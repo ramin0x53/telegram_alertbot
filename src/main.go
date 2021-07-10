@@ -47,8 +47,20 @@ func comp(c string, p string, r string) bool {
 	}
 }
 
+func rmRow(chatid int, crypto string, rule string, price1 string) {
+	database, _ := sql.Open("sqlite3", "./CryptoTable.db")
+	statement, _ := database.Prepare("DELETE FROM table1 WHERE chatid = " + strconv.Itoa(chatid) + " AND crypto = '" + crypto + "' AND rule = '" + rule + "' AND price = '" + price1 + "'")
+	_, err := statement.Exec()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer database.Close()
+}
+
 func alert() {
 	database, _ := sql.Open("sqlite3", "./CryptoTable.db")
+	defer database.Close()
 	for {
 		rows, _ := database.Query("SELECT chatid, crypto, rule, price FROM table1 ")
 
@@ -69,17 +81,20 @@ func alert() {
 
 				http.Post("https://api.telegram.org/bot"+TKN+"/sendMessage", "application/json", bytes.NewBuffer(reqBytes))
 
-				statement, _ := database.Prepare("DELETE FROM table1 WHERE chatid = " + strconv.Itoa(chatid) + " AND crypto = '" + crypto + "' AND rule = '" + rule + "' AND price = '" + price1 + "'")
-				_, err := statement.Exec()
+				// statement, _ := database.Prepare("DELETE FROM table1 WHERE chatid = " + strconv.Itoa(chatid) + " AND crypto = '" + crypto + "' AND rule = '" + rule + "' AND price = '" + price1 + "'")
+				// _, err := statement.Exec()
 
-				if err != nil {
-					log.Fatal(err)
-				}
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
 
-				time.Sleep(300 * time.Millisecond)
+				// rmRow(chatid, crypto, rule, price1)
+
+				time.Sleep(2000 * time.Millisecond)
 
 			}
 		}
+		rows.Close()
 	}
 }
 
@@ -98,6 +113,7 @@ func main() {
 	database, _ := sql.Open("sqlite3", "./CryptoTable.db")
 	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS table1 (id INTEGER PRIMARY KEY,chatid INTEGER, crypto TEXT, rule TEXT, price TEXT)")
 	statement.Exec()
+	defer database.Close()
 
 	go alert()
 
@@ -109,12 +125,13 @@ func main() {
 
 	b.Handle("/rm", func(m *tb.Message) {
 		split := strings.Split(strings.ReplaceAll(m.Text, "/rm ", ""), " ")
-		statement, _ = database.Prepare("DELETE FROM table1 WHERE chatid = " + strconv.Itoa(m.Sender.ID) + " AND crypto = '" + split[0] + "' AND rule = '" + split[1] + "' AND price = '" + split[2] + "'")
-		_, err := statement.Exec()
+		// statement, _ = database.Prepare("DELETE FROM table1 WHERE chatid = " + strconv.Itoa(m.Sender.ID) + " AND crypto = '" + split[0] + "' AND rule = '" + split[1] + "' AND price = '" + split[2] + "'")
+		// _, err := statement.Exec()
 
-		if err != nil {
-			log.Fatal(err)
-		}
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		rmRow(m.Sender.ID, split[0], split[1], split[2])
 	})
 
 	b.Handle("/show", func(m *tb.Message) {
@@ -128,6 +145,7 @@ func main() {
 			rows.Scan(&crypto, &rule, &price)
 			b.Send(m.Sender, crypto+" "+rule+" "+price)
 		}
+		rows.Close()
 	})
 
 	b.Handle(tb.OnText, func(m *tb.Message) { b.Send(m.Chat, price.GetPrice(m.Text)) })
