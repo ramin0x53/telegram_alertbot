@@ -17,7 +17,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var TKN string = "1839193222:AAGAtkSI2r6Z9WWWwrp4QtKehBWlyd3N404"
+var TKN string = "<Telegram_TOKEN>"
 
 type sendMessageReqBody struct {
 	ChatID int64  `json:"chat_id"`
